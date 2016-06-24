@@ -34,7 +34,7 @@ Add the plugin and hooks to your `rebar.config`
 }.
 ```
 
-You can find an example usage [here](https://github.com/sdwolf/rust).
+You can find an example usage [here](https://github.com/sdwolf/rustfromerl).
 
 ## Upgrade
 
