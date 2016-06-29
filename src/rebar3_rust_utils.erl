@@ -34,46 +34,36 @@ compile_crate(CrateDir, PrivDir) ->
 
   {ok, _} = rebar_utils:sh(Command, [{cd, CrateDir}, {use_stdout, true}]),
 
-  SOGlob  = filename:join([CrateDir, "target", "release", "*.so"]),
-  SOFiles = filelib:wildcard(SOGlob),
+  NewFilesGlob = filename:join([CrateDir, "target", "release", "*"]),
+  NewFiles     = lists:filter(
+    fun(Path) ->
+        filelib:is_regular(Path) andalso filename:basename(Path) /= ".cargo-lock"
+    end,
+    filelib:wildcard(NewFilesGlob)
+  ),
 
   CratesPrivDir = filename:join(PrivDir, "crates"),
 
   file:make_dir(CratesPrivDir),
 
-  CrateName     = filename:basename(CrateDir),
-  Destination   = filename:join(CratesPrivDir, CrateName),
-  OldFilesGlob  = filename:join(Destination, "*.so"),
-  OldFiles      = filelib:wildcard(OldFilesGlob),
+  CrateName    = filename:basename(CrateDir),
+  Destination  = filename:join(CratesPrivDir, CrateName),
+  OldFilesGlob = filename:join(Destination, "*"),
+  OldFiles     = filelib:wildcard(OldFilesGlob),
 
   file:make_dir(Destination),
 
-  lists:foreach(
-    fun(File) -> remove_file(File) end,
-    OldFiles
-  ),
+  lists:foreach(fun file:delete/1, OldFiles),
 
   lists:foreach(
     fun(File) -> copy_file(File, Destination) end,
-    SOFiles
+    NewFiles
   ).
 
 copy_file(SourceFile, DestinationDir) ->
-  Extension = filename:extension(SourceFile),
+  DestinationFile = filename:join(
+    DestinationDir,
+    filename:basename(SourceFile)
+  ),
 
-  case Extension of
-    ".so" ->
-      DestinationFile = filename:join(
-        DestinationDir,
-        filename:basename(SourceFile)
-      ),
-
-      file:copy(SourceFile, DestinationFile);
-    _ -> ok
-  end.
-
-remove_file(File) ->
-  case filename:extension(File) of
-    ".so" -> file:delete(File);
-    _     -> ok
-  end.
+  file:copy(SourceFile, DestinationFile).
