@@ -1,6 +1,6 @@
 # rebar3_rust
 
-Compile rust NIFs for erlang projects.
+Compile rust crates for erlang projects.
 
 ## Use
 
@@ -33,6 +33,15 @@ Add the plugin and hooks to your `rebar.config`
   ]
 }.
 ```
+
+Add the following to your `.gitignore`
+
+```
+crates/*/target
+priv/*
+!priv/.keep
+```
+
 
 You can find an example usage [here](https://github.com/sdwolf/rustfromerl).
 

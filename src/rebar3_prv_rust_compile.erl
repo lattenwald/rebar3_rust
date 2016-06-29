@@ -28,7 +28,7 @@ init(State) ->
 
 -spec do(rebar_state:t()) -> {ok, rebar_state:t()} | {error, string()}.
 do(State) ->
-  NewState = rebar3_rust_utils:compile_nifs(State),
+  NewState = rebar3_rust_utils:compile_crates(State),
 
   {ok, NewState}.
 

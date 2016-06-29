@@ -1,39 +1,26 @@
 -module(rebar3_rust_utils).
 
 -export([
-  compile_nifs/1
+  compile_crates/1
 ]).
 
 %% ===================================================================
 %% Public API
 %% ===================================================================
 
-compile_nifs(State) ->
-  App        = rebar_state:current_app(State),
-  AppDir     = rebar_app_info:dir(App),
-  RustNifDir = filename:join(AppDir, "rust_nif"),
+compile_crates(State) ->
+  App     = rebar_state:current_app(State),
+  AppName = binary_to_list(rebar_app_info:name(App)),
+  AppDir  = rebar_app_info:dir(App),
+  PrivDir = code:priv_dir(AppName),
 
-  Command = "cargo build --release -j$(nproc)",
-  {ok, _} = rebar_utils:sh(Command, [{cd, rust_nif}, {use_stdout, true}]),
-
-  SOGlob  = filename:join([RustNifDir, "target", "release", "*.so"]),
-  SOFiles = filelib:wildcard(SOGlob),
-
-  AppName      = binary_to_list(rebar_app_info:name(App)),
-  PrivDir      = code:priv_dir(AppName),
-  Destination  = filename:join(PrivDir, "rust_nif"),
-  OldFilesGlob = filename:join(Destination, "*.so"),
-  OldFiles     = filelib:wildcard(OldFilesGlob),
-
-  file:make_dir(Destination),
+  CratesDir  = filename:join(AppDir, "crates"),
+  CratesGlob = filename:join(CratesDir, "*"),
+  Crates     = filelib:wildcard(CratesGlob),
 
   lists:foreach(
-    fun(File) -> remove_file(File) end,
-    OldFiles
-  ),
-  lists:foreach(
-    fun(File) -> copy_file(File, Destination) end,
-    SOFiles
+    fun(CrateDir) -> compile_crate(CrateDir, PrivDir) end,
+    Crates
   ),
 
   State.
@@ -41,6 +28,35 @@ compile_nifs(State) ->
 %% ===================================================================
 %% Internal functions
 %% ===================================================================
+
+compile_crate(CrateDir, PrivDir) ->
+  Command = "cargo build --release -j$(nproc)",
+
+  {ok, _} = rebar_utils:sh(Command, [{cd, CrateDir}, {use_stdout, true}]),
+
+  SOGlob  = filename:join([CrateDir, "target", "release", "*.so"]),
+  SOFiles = filelib:wildcard(SOGlob),
+
+  CratesPrivDir = filename:join(PrivDir, "crates"),
+
+  file:make_dir(CratesPrivDir),
+
+  CrateName     = filename:basename(CrateDir),
+  Destination   = filename:join(CratesPrivDir, CrateName),
+  OldFilesGlob  = filename:join(Destination, "*.so"),
+  OldFiles      = filelib:wildcard(OldFilesGlob),
+
+  file:make_dir(Destination),
+
+  lists:foreach(
+    fun(File) -> remove_file(File) end,
+    OldFiles
+  ),
+
+  lists:foreach(
+    fun(File) -> copy_file(File, Destination) end,
+    SOFiles
+  ).
 
 copy_file(SourceFile, DestinationDir) ->
   Extension = filename:extension(SourceFile),
