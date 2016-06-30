@@ -61,9 +61,11 @@ compile_crate(CrateDir, PrivDir) ->
   ).
 
 copy_file(SourceFile, DestinationDir) ->
-  DestinationFile = filename:join(
-    DestinationDir,
-    filename:basename(SourceFile)
-  ),
+  FileName = case filename:extension(SourceFile) of
+    ".dylib" -> filename:rootname(filename:basename(SourceFile)) ++ ".so";
+    _        -> filename:basename(SourceFile)
+  end,
+
+  DestinationFile = filename:join(DestinationDir, FileName),
 
   file:copy(SourceFile, DestinationFile).
