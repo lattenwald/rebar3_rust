@@ -30,7 +30,10 @@ compile_crates(State) ->
 %% ===================================================================
 
 compile_crate(CrateDir, PrivDir) ->
-  Command = "cargo build --release -j$(nproc)",
+  Command = case os:type() of
+    {unix,darwin} ->  "cargo rustc --release -j$(sysctl -n hw.ncpu) -- -C link-args='-flat_namespace -undefined suppress'";
+    {unix,linux}  ->  "cargo build --release -j$(nproc)"
+  end,
 
   {ok, _} = rebar_utils:sh(Command, [{cd, CrateDir}, {use_stdout, true}]),
 
